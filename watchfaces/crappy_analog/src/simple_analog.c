@@ -12,6 +12,10 @@ TextLayer *day_label;
 char day_buffer[6];
 TextLayer *num_label;
 char num_buffer[4];
+TextLayer *logo_label;
+char logo_buffer[8];
+
+static const char *BRAND = "BOFFO";
 
 static GPath *minute_arrow;
 static GPath *hour_arrow;
@@ -169,13 +173,20 @@ static void date_update_proc(Layer *layer, GContext *ctx) {
 
   int d = (dwound-1) + (((now-twound)/(24*3600)) % 31) + 1;
   
-  /* strftime(day_buffer, sizeof(day_buffer), "%a", t); */
-  snprintf(day_buffer,sizeof(day_buffer),"%d",(int)s);
+  // strftime(day_buffer, sizeof(day_buffer), "%a", t);
+  // snprintf(day_buffer,sizeof(day_buffer),"%d",(int)s);
   text_layer_set_text(day_label, day_buffer);
 
   /* strftime(num_buffer, sizeof(num_buffer), "%d", t); */
   snprintf(num_buffer,sizeof(num_buffer),"%d",d);
+  day_buffer[0] = 'A' + rand() % ('Z'-'A');
+  day_buffer[1] = 'a' + rand() % ('z'-'a');
+  day_buffer[2] = 'a' + rand() % ('z'-'a');
+  day_buffer[3] = 0;
   text_layer_set_text(num_label, num_buffer);
+
+  snprintf(logo_buffer,sizeof(logo_buffer),"%s",BRAND);
+  text_layer_set_text(logo_label,logo_buffer);
 }
 
 static void handle_tick(struct tm *tick_time, TimeUnits units_changed) {
@@ -209,15 +220,25 @@ static void window_load(Window *window) {
   layer_set_update_proc(date_layer, date_update_proc);
   layer_add_child(window_layer, date_layer);
 
+  GFont norm18 = fonts_get_system_font(FONT_KEY_GOTHIC_18);
+  GFont bold18 = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
+
+  // init logo
+  logo_label = text_layer_create(GRect(48, 20, 54, 20));
+  text_layer_set_text(logo_label, logo_buffer);
+  text_layer_set_background_color(logo_label, GColorBlack);
+  text_layer_set_text_color(logo_label, GColorWhite);
+  text_layer_set_font(logo_label, bold18);
+
   // init day
   day_label = text_layer_create(GRect(46, 114, 27, 20));
   text_layer_set_text(day_label, day_buffer);
   text_layer_set_background_color(day_label, GColorBlack);
   text_layer_set_text_color(day_label, GColorWhite);
-  GFont norm18 = fonts_get_system_font(FONT_KEY_GOTHIC_18);
   text_layer_set_font(day_label, norm18);
 
   layer_add_child(date_layer, text_layer_get_layer(day_label));
+  layer_add_child(date_layer, text_layer_get_layer(logo_label));
 
   // init num
   num_label = text_layer_create(GRect(73, 114, 18, 20));
@@ -225,7 +246,6 @@ static void window_load(Window *window) {
   text_layer_set_text(num_label, num_buffer);
   text_layer_set_background_color(num_label, GColorBlack);
   text_layer_set_text_color(num_label, GColorWhite);
-  GFont bold18 = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
   text_layer_set_font(num_label, bold18);
 
   layer_add_child(date_layer, text_layer_get_layer(num_label));
@@ -241,6 +261,7 @@ static void window_unload(Window *window) {
   layer_destroy(date_layer);
   text_layer_destroy(day_label);
   text_layer_destroy(num_label);
+  text_layer_destroy(logo_label);
   layer_destroy(hands_layer);
 }
 
