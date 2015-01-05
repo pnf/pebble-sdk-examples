@@ -47,24 +47,24 @@ s = s0 + \int_t0^t a (w - wz) dt'
 //static int butt = 0;
 
 // Day of month when last fully wound
-uint32_t DWOUND_KEY = 2;
+static const uint32_t DWOUND_KEY = 2;
 static int dwound = -1;
 
 // Time when last fully wound
-uint32_t TWOUND_KEY = 3;
+static const uint32_t TWOUND_KEY = 3;
 static long twound = -1;
 
 // Winding level
-uint32_t WLEVEL_KEY = 4;
+static const uint32_t WLEVEL_KEY = 4;
 static double w0;
 static double w;
 
 // Skew
-uint32_t SKEW_KEY = 5;
+static const uint32_t SKEW_KEY = 5;
 static double s0;
 static double s;
 
-uint32_t T0_KEY = 6;
+static const uint32_t T0_KEY = 6;
 static long t0 = 0L;  // time when saved
 static long t1 = 0L;  // time when updated internally
 
@@ -75,7 +75,7 @@ static void get_state() {
     dwound = persist_read_int(DWOUND_KEY);
     persist_read_data(WLEVEL_KEY,&w0,sizeof(w0)); w=w0;
     persist_read_data(SKEW_KEY,&s0,sizeof(s0)); s=s0;
-    persist_read_data(T0_KEY,&t0,sizeof(t0)); t1=t0;
+    persist_read_data(T0_KEY,&t0,sizeof(t0)); t1=t0;
   }
   else {
     APP_LOG(APP_LOG_LEVEL_DEBUG,"Initializing new state.\n");
@@ -102,7 +102,7 @@ static void save_state() {
 static const int WIND_RATE =   20;   /* per click */
 static const int UNWIND_RATE = 4;  /* per hour */
 static const int SKEW_RATE =  2; /* minutes per day per 100 winds */
-static const double W0 = 50.;
+static const double W0 = 60.;
 static const int JUMP_SEC = 7;
 
 static void set_skew() {
@@ -111,6 +111,7 @@ static void set_skew() {
   t1 = time(NULL);
   w = w0 - u * (t1-t0);
   if(w<=0.0) {
+    w = 0.0;
     t1 = w0/u + t0;  // time the clock stopped
   }
   s = s0 + a * (t1-t0) * (w0 - W0 - 0.5 * u * (t1-t0));
@@ -190,17 +191,13 @@ static void date_update_proc(Layer *layer, GContext *ctx) {
 }
 
 static void handle_tick(struct tm *tick_time, TimeUnits units_changed) {
-  if(units_changed & HOUR_UNIT) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Hour tick");
-    w = w - UNWIND_RATE;
-    if(w<0.0) w = 0.0;
-  }
   if(units_changed & MINUTE_UNIT) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Minute tick");
     set_skew();
   }
   if(units_changed & SECOND_UNIT &&
-     (tick_time->tm_sec % JUMP_SEC)==0) {
+     (tick_time->tm_sec % JUMP_SEC)==0
+     w>0.0) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Second tick");
     layer_mark_dirty(window_get_root_layer(window));
   }
